@@ -66,24 +66,35 @@ router.put('/:id', async (req, res) => {
 });
 
 // delete a category by its `id` value
-router.delete('/:id', async (req, res) => {
+router.delete('/categories/:id', async (req, res) => {
+  const categoryIdToDelete = req.params.id;
+
   try {
-    const categoryData = await Category.destroy({
-      where: {
-        id: req.params.id,
-      },
-    });
+    // Check for any products associated with this category
+    const products = await Product.findAll({ where: { category_id: categoryIdToDelete } });
+
+    if (products.length > 0) {
+      // If there are associated products, prevent deletion
+      res.status(400).json({ message: 'Cannot delete category because it has products associated with it.' });
+      return;
+    }
+
+    // If no associated products, proceed with deletion
+    const categoryData = await Category.destroy({ where: { id: categoryIdToDelete } });
 
     if (!categoryData) {
       res.status(404).json({ message: 'No category found with this id!' });
       return;
     }
 
-    res.status(200).json({ message: 'Category deleted successfully!' });
+    res.status(200).json({ message: 'Category successfully deleted' });
   } catch (err) {
-    console.log(err);
-    res.status(500).json(err);
+    console.error(err);
+    res.status(500).json({ message: 'Error deleting category', error: err });
   }
 });
+
+
+
 
 module.exports = router;
